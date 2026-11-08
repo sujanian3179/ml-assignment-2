@@ -78,18 +78,34 @@ GLASS_CSS = """
     50%  { transform: translate(3%, -2%) rotate(6deg) scale(1.06); }
     100% { transform: translate(-3%, 2%) rotate(-5deg) scale(1.02); }
   }
-  [data-testid="stAppViewContainer"], [data-testid="stMain"] { position: relative; z-index: 1; background: transparent; }
+  [data-testid="stAppViewContainer"] { position: relative; z-index: 1; background: transparent; }
+  [data-testid="stMain"] { background: transparent; }
   [data-testid="stHeader"] { background: transparent; }
   .block-container { padding-top: 2rem; max-width: 1150px; }
 
   /* ---------- shared glass surface ---------- */
+  /* NOTE: backdrop-filter / transform on an element turn it into the containing
+     block for position:fixed children, which breaks Streamlit's fullscreen view
+     of charts and tables. Containers that hold such elements therefore get the
+     blur on a ::before layer and an opacity-only entrance animation. */
   .hero, [data-testid="stMetric"], [data-testid="stExpander"] details,
   [class*="st-key-panel"], [data-testid="stDataFrame"] {
     background: rgba(255,255,255,.42);
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
     border: 1px solid rgba(255,255,255,.65);
     box-shadow: 0 8px 32px rgba(31,45,110,.12), inset 0 1px 0 rgba(255,255,255,.7);
+  }
+  .hero, [data-testid="stMetric"] {
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+  }
+  [data-testid="stExpander"] details, [class*="st-key-panel"] {
+    position: relative;
+  }
+  [data-testid="stExpander"] details::before, [class*="st-key-panel"]::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    pointer-events: none;
   }
 
   /* ---------- sidebar ---------- */
@@ -162,7 +178,7 @@ GLASS_CSS = """
     background-clip: text; color: transparent; }
 
   /* ---------- panels, tables, tabs, buttons ---------- */
-  [class*="st-key-panel"] { border-radius: 18px; padding: 1rem 1.2rem .6rem; animation: rise .7s cubic-bezier(.2,.7,.2,1) .2s both; }
+  [class*="st-key-panel"] { border-radius: 18px; padding: 1rem 1.2rem .6rem; animation: fade .7s ease .2s backwards; }
   [data-testid="stDataFrame"] { border-radius: 14px; padding: 4px; }
   [data-testid="stExpander"] details { border-radius: 14px; }
   h3 { font-size: 1.05rem !important; font-weight: 650 !important; color: #1b2235; }
@@ -171,7 +187,7 @@ GLASS_CSS = """
   .stTabs [data-baseweb="tab"] { font-weight: 600; border-radius: 10px; padding: .4rem 1rem; transition: background .2s; }
   .stTabs [aria-selected="true"] { background: rgba(255,255,255,.75); box-shadow: 0 2px 10px rgba(31,45,110,.1); }
   .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none; }
-  [data-testid="stTabPanel"] { animation: fade .45s ease both; }
+  [data-testid="stTabPanel"] { animation: fade .45s ease backwards; }
   .stButton button, .stDownloadButton button {
     background: rgba(255,255,255,.55); backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,.75); border-radius: 12px;
