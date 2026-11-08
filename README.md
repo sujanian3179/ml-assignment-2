@@ -1,6 +1,6 @@
 # Bank Term-Deposit Subscription — ML Classification & Streamlit App
 
-**Live app:** _add Streamlit Cloud link here_
+**Live app:** https://ml-assignment-ayushranjanjha.streamlit.app/
 **Repository:** https://github.com/sujanian3179/ml-assignment-2
 
 ## a. Problem statement
