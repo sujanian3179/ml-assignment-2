@@ -35,7 +35,13 @@ columns, `OneHotEncoder(handle_unknown="ignore")` on categorical columns. Becaus
 class imbalance, `class_weight="balanced"` is used for Logistic Regression, Decision Tree
 and SVM (KNN and Gaussian NB do not support it).
 
-## c. Models used
+## c. GitHub repository link
+
+https://github.com/sujanian3179/ml-assignment-2. It contains the complete source code
+(`train_model.py`, `app.py`), `requirements.txt`, this `README.md`, the test data
+(`test_data.csv`), the full dataset (`data/bank.csv`) and the five saved models (`model/`).
+
+## d. Models used
 
 All five models are trained on the same training split and evaluated on the same held-out
 test split (905 rows).
