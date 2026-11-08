@@ -59,40 +59,141 @@ expected_cols = list(next(iter(models.values())).feature_names_in_)
 ACCENT = "#2f4fb0"
 MUTED = "#c9d1e6"
 
-st.markdown(f"""
+GLASS_CSS = """
 <style>
-  .block-container {{ padding-top: 2rem; max-width: 1150px; }}
-  .hero {{
-    background: linear-gradient(135deg, #1e2f6e 0%, {ACCENT} 60%, #4a6fd8 100%);
-    color: #fff; border-radius: 18px; padding: 1.6rem 2rem 1.4rem;
-    margin-bottom: 1.4rem; box-shadow: 0 8px 24px rgba(30,47,110,.18);
-  }}
-  .hero .chips {{ display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .9rem; }}
-  .hero .chip {{
-    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25);
-    border-radius: 999px; padding: .18rem .75rem; font-size: .78rem;
-    letter-spacing: .04em; text-transform: uppercase;
-  }}
-  .hero h1 {{ color: #fff; font-size: 1.9rem; font-weight: 700; margin: 0 0 .35rem; padding: 0; }}
-  .hero p.sub {{ color: rgba(255,255,255,.85); margin: 0 0 1rem; font-size: .98rem; }}
-  .hero .meta {{
-    display: flex; flex-wrap: wrap; gap: 1.6rem; font-size: .88rem;
-    border-top: 1px solid rgba(255,255,255,.2); padding-top: .8rem;
-  }}
-  .hero .meta span {{ color: rgba(255,255,255,.65); display: block; font-size: .72rem;
-    text-transform: uppercase; letter-spacing: .06em; }}
-  [data-testid="stMetric"] {{
-    background: #f4f6fb; border: 1px solid #e3e8f3; border-radius: 14px;
-    padding: .8rem 1rem; border-top: 3px solid {ACCENT};
-  }}
-  [data-testid="stMetricLabel"] p {{ font-size: .78rem; text-transform: uppercase;
-    letter-spacing: .05em; color: #5b6478; }}
-  [data-testid="stMetricValue"] {{ font-size: 1.55rem; font-weight: 650; color: #1b2235; }}
-  h3 {{ font-size: 1.05rem !important; font-weight: 650 !important; color: #1b2235; }}
-  .stTabs [data-baseweb="tab"] {{ font-weight: 600; }}
-  .footer {{ text-align: center; color: #8a92a6; font-size: .8rem; margin-top: 2.5rem; }}
+  /* ---------- animated colour backdrop (what the glass blurs) ---------- */
+  [data-testid="stApp"] { background: #eef1fb; }
+  [data-testid="stApp"]::before {
+    content: ""; position: fixed; inset: -15%; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(38% 38% at 18% 22%, rgba(99,123,255,.55), transparent 70%),
+      radial-gradient(32% 32% at 82% 18%, rgba(167,112,255,.45), transparent 70%),
+      radial-gradient(40% 40% at 75% 85%, rgba(56,189,248,.45), transparent 70%),
+      radial-gradient(30% 30% at 22% 88%, rgba(244,114,182,.35), transparent 70%);
+    filter: blur(30px);
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+    50%  { transform: translate(3%, -2%) rotate(6deg) scale(1.06); }
+    100% { transform: translate(-3%, 2%) rotate(-5deg) scale(1.02); }
+  }
+  [data-testid="stAppViewContainer"], [data-testid="stMain"] { position: relative; z-index: 1; background: transparent; }
+  [data-testid="stHeader"] { background: transparent; }
+  .block-container { padding-top: 2rem; max-width: 1150px; }
+
+  /* ---------- shared glass surface ---------- */
+  .hero, [data-testid="stMetric"], [data-testid="stExpander"] details,
+  [class*="st-key-panel"], [data-testid="stDataFrame"] {
+    background: rgba(255,255,255,.42);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.65);
+    box-shadow: 0 8px 32px rgba(31,45,110,.12), inset 0 1px 0 rgba(255,255,255,.7);
+  }
+
+  /* ---------- sidebar ---------- */
+  [data-testid="stSidebar"] {
+    background: rgba(255,255,255,.38);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    border-right: 1px solid rgba(255,255,255,.6);
+  }
+  [data-testid="stSidebar"] > div { background: transparent; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative; overflow: hidden; border-radius: 22px;
+    padding: 1.7rem 2rem 1.4rem; margin-bottom: 1.4rem;
+    background: linear-gradient(135deg, rgba(30,47,110,.82), rgba(47,79,176,.72) 55%, rgba(110,90,230,.66));
+    background-size: 200% 200%;
+    color: #fff; border-color: rgba(255,255,255,.35);
+    animation: rise .8s cubic-bezier(.2,.7,.2,1) both, hue 12s ease-in-out infinite alternate;
+  }
+  .hero::after {   /* glossy sheen sweeping across */
+    content: ""; position: absolute; top: 0; left: -60%; width: 45%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.28), transparent);
+    transform: skewX(-18deg); animation: sheen 6s ease-in-out 1.2s infinite;
+  }
+  .hero::before {  /* top gloss */
+    content: ""; position: absolute; inset: 0 0 55% 0; border-radius: 22px 22px 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,.22), transparent); pointer-events: none;
+  }
+  @keyframes sheen { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+  @keyframes hue   { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+  .hero .chips { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .9rem; position: relative; z-index: 1; }
+  .hero .chip {
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.35);
+    backdrop-filter: blur(6px); border-radius: 999px; padding: .2rem .8rem;
+    font-size: .76rem; letter-spacing: .05em; text-transform: uppercase;
+    animation: rise .6s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .hero .chip:nth-child(2) { animation-delay: .1s; }
+  .hero .chip:nth-child(3) { animation-delay: .2s; }
+  .hero h1 { color: #fff; font-size: 1.95rem; font-weight: 700; margin: 0 0 .35rem; padding: 0;
+    position: relative; z-index: 1; text-shadow: 0 2px 12px rgba(0,0,0,.18); }
+  .hero p.sub { color: rgba(255,255,255,.88); margin: 0 0 1rem; font-size: .98rem; position: relative; z-index: 1; }
+  .hero .meta { display: flex; flex-wrap: wrap; gap: 1.8rem; font-size: .9rem; position: relative; z-index: 1;
+    border-top: 1px solid rgba(255,255,255,.22); padding-top: .8rem; }
+  .hero .meta span { color: rgba(255,255,255,.68); display: block; font-size: .7rem;
+    text-transform: uppercase; letter-spacing: .07em; }
+
+  /* ---------- metric cards ---------- */
+  [data-testid="stMetric"] {
+    border-radius: 16px; padding: .9rem 1rem; position: relative; overflow: hidden;
+    transition: transform .25s ease, box-shadow .25s ease;
+    animation: rise .6s cubic-bezier(.2,.7,.2,1) both;
+  }
+  [data-testid="stMetric"]::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #2f4fb0, #7c5cff, #38bdf8);
+    background-size: 200% 100%; animation: hue 4s linear infinite alternate;
+  }
+  [data-testid="stMetric"]:hover { transform: translateY(-4px); box-shadow: 0 14px 36px rgba(31,45,110,.2); }
+  [data-testid="stColumn"]:nth-child(1) [data-testid="stMetric"] { animation-delay: .05s; }
+  [data-testid="stColumn"]:nth-child(2) [data-testid="stMetric"] { animation-delay: .12s; }
+  [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"] { animation-delay: .19s; }
+  [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"] { animation-delay: .26s; }
+  [data-testid="stColumn"]:nth-child(5) [data-testid="stMetric"] { animation-delay: .33s; }
+  [data-testid="stColumn"]:nth-child(6) [data-testid="stMetric"] { animation-delay: .40s; }
+  [data-testid="stMetricLabel"] p { font-size: .76rem; text-transform: uppercase; letter-spacing: .06em; color: #4d5670; }
+  [data-testid="stMetricValue"] { font-size: 1.6rem; font-weight: 700;
+    background: linear-gradient(135deg, #1e2f6e, #5b4fd6); -webkit-background-clip: text;
+    background-clip: text; color: transparent; }
+
+  /* ---------- panels, tables, tabs, buttons ---------- */
+  [class*="st-key-panel"] { border-radius: 18px; padding: 1rem 1.2rem .6rem; animation: rise .7s cubic-bezier(.2,.7,.2,1) .2s both; }
+  [data-testid="stDataFrame"] { border-radius: 14px; padding: 4px; }
+  [data-testid="stExpander"] details { border-radius: 14px; }
+  h3 { font-size: 1.05rem !important; font-weight: 650 !important; color: #1b2235; }
+  .stTabs [data-baseweb="tab-list"] { gap: .4rem; background: rgba(255,255,255,.35);
+    backdrop-filter: blur(12px); padding: .3rem; border-radius: 14px; border: 1px solid rgba(255,255,255,.6); }
+  .stTabs [data-baseweb="tab"] { font-weight: 600; border-radius: 10px; padding: .4rem 1rem; transition: background .2s; }
+  .stTabs [aria-selected="true"] { background: rgba(255,255,255,.75); box-shadow: 0 2px 10px rgba(31,45,110,.1); }
+  .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none; }
+  [data-testid="stTabPanel"] { animation: fade .45s ease both; }
+  .stButton button, .stDownloadButton button {
+    background: rgba(255,255,255,.55); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.75); border-radius: 12px;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s;
+  }
+  .stButton button:hover, .stDownloadButton button:hover {
+    transform: translateY(-2px); background: rgba(255,255,255,.85);
+    box-shadow: 0 8px 20px rgba(31,45,110,.15);
+  }
+
+  .footer { text-align: center; color: #5b6478; font-size: .8rem; margin-top: 2.5rem; opacity: .8; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
-""", unsafe_allow_html=True)
+"""
+
+st.markdown(GLASS_CSS, unsafe_allow_html=True)
 
 
 def style_axes(ax) -> None:
@@ -164,7 +265,7 @@ with tab_single:
         col.metric(k, f"{v:.3f}")
 
     left, right = st.columns(2)
-    with left:
+    with left, st.container(key="panel_cm"):
         st.subheader("Confusion matrix")
         cm = confusion_matrix(y, y_pred, labels=[0, 1])
         fig, ax = plt.subplots(figsize=(4.5, 3.6))
@@ -176,7 +277,7 @@ with tab_single:
         ax.set_ylabel("Actual")
         style_axes(ax)
         st.pyplot(fig)
-    with right:
+    with right, st.container(key="panel_report"):
         st.subheader("Classification report")
         report = classification_report(y, y_pred, labels=[0, 1],
                                        target_names=["no", "yes"],
