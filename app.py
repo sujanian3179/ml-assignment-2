@@ -56,30 +56,90 @@ def score(model, X, y) -> tuple[dict, pd.Series]:
 models = load_models()
 expected_cols = list(next(iter(models.values())).feature_names_in_)
 
+ACCENT = "#2f4fb0"
+MUTED = "#c9d1e6"
+
+st.markdown(f"""
+<style>
+  .block-container {{ padding-top: 2rem; max-width: 1150px; }}
+  .hero {{
+    background: linear-gradient(135deg, #1e2f6e 0%, {ACCENT} 60%, #4a6fd8 100%);
+    color: #fff; border-radius: 18px; padding: 1.6rem 2rem 1.4rem;
+    margin-bottom: 1.4rem; box-shadow: 0 8px 24px rgba(30,47,110,.18);
+  }}
+  .hero .chips {{ display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .9rem; }}
+  .hero .chip {{
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 999px; padding: .18rem .75rem; font-size: .78rem;
+    letter-spacing: .04em; text-transform: uppercase;
+  }}
+  .hero h1 {{ color: #fff; font-size: 1.9rem; font-weight: 700; margin: 0 0 .35rem; padding: 0; }}
+  .hero p.sub {{ color: rgba(255,255,255,.85); margin: 0 0 1rem; font-size: .98rem; }}
+  .hero .meta {{
+    display: flex; flex-wrap: wrap; gap: 1.6rem; font-size: .88rem;
+    border-top: 1px solid rgba(255,255,255,.2); padding-top: .8rem;
+  }}
+  .hero .meta span {{ color: rgba(255,255,255,.65); display: block; font-size: .72rem;
+    text-transform: uppercase; letter-spacing: .06em; }}
+  [data-testid="stMetric"] {{
+    background: #f4f6fb; border: 1px solid #e3e8f3; border-radius: 14px;
+    padding: .8rem 1rem; border-top: 3px solid {ACCENT};
+  }}
+  [data-testid="stMetricLabel"] p {{ font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .05em; color: #5b6478; }}
+  [data-testid="stMetricValue"] {{ font-size: 1.55rem; font-weight: 650; color: #1b2235; }}
+  h3 {{ font-size: 1.05rem !important; font-weight: 650 !important; color: #1b2235; }}
+  .stTabs [data-baseweb="tab"] {{ font-weight: 600; }}
+  .footer {{ text-align: center; color: #8a92a6; font-size: .8rem; margin-top: 2.5rem; }}
+</style>
+""", unsafe_allow_html=True)
+
+
+def style_axes(ax) -> None:
+    sns.despine(ax=ax)
+    ax.set_facecolor("none")
+    ax.figure.patch.set_alpha(0)
+    ax.tick_params(colors="#5b6478")
+    for label in (ax.xaxis.label, ax.yaxis.label):
+        label.set_color("#5b6478")
+
+
 # ---------------- Sidebar ----------------
 with st.sidebar:
-    st.header("⚙️ Settings")
-    model_name = st.selectbox("Choose a model", list(MODEL_FILES))
+    st.markdown("### ⚙️ Controls")
+    model_name = st.selectbox("Model", list(MODEL_FILES), index=4)
     uploaded = st.file_uploader("Upload test data (CSV)", type="csv")
-    use_sample = st.checkbox("Use bundled sample test data", value=uploaded is None)
-    st.download_button("Download sample test_data.csv", SAMPLE_TEST.read_bytes(),
-                       file_name="test_data.csv", mime="text/csv")
-    st.caption("Models are pre-trained; uploaded data is only used for evaluation.")
+    use_sample = st.toggle("Use bundled sample test data", value=uploaded is None)
+    st.download_button("⬇️ Download sample test_data.csv", SAMPLE_TEST.read_bytes(),
+                       file_name="test_data.csv", mime="text/csv", width="stretch")
+    st.divider()
+    st.caption("Models are pre-trained and loaded from disk. Uploaded data is used "
+               "only for evaluation, never for retraining.")
 
 # ---------------- Header ----------------
-st.title("🏦 Bank Term-Deposit Subscription Predictor")
-st.write(
-    "Predicts whether a bank client will subscribe to a term deposit "
-    "(UCI Bank Marketing dataset). Upload a test CSV with the 15 input features "
-    f"and the target column **`{TARGET}`**, pick a model, and inspect its performance."
-)
+st.markdown("""
+<div class="hero">
+  <div class="chips">
+    <div class="chip">BITS Pilani · WILP</div>
+    <div class="chip">M.Tech AIML</div>
+    <div class="chip">Machine Learning · Assignment 2</div>
+  </div>
+  <h1>🏦 Bank Term-Deposit Subscription Predictor</h1>
+  <p class="sub">Five classifiers trained on the UCI Bank Marketing dataset. Upload test data,
+  pick a model and inspect how well it predicts which clients will subscribe.</p>
+  <div class="meta">
+    <div><span>Instructor In-Charge (I/C)</span>Prof. Kiruthiga A R</div>
+    <div><span>Submitted by</span>Ayush Ranjan Jha · 2026AJ05881</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 if uploaded is not None:
     df = pd.read_csv(uploaded)
 elif use_sample:
     df = pd.read_csv(SAMPLE_TEST)
 else:
-    st.info("⬅️ Upload a CSV or tick *Use bundled sample test data* to begin.")
+    st.info("⬅️ Upload a CSV or turn on *Use bundled sample test data* to begin.")
     st.stop()
 
 missing = [c for c in expected_cols + [TARGET] if c not in df.columns]
@@ -107,11 +167,14 @@ with tab_single:
     with left:
         st.subheader("Confusion matrix")
         cm = confusion_matrix(y, y_pred, labels=[0, 1])
-        fig, ax = plt.subplots(figsize=(4.5, 3.8))
-        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, ax=ax,
+        fig, ax = plt.subplots(figsize=(4.5, 3.6))
+        cmap = sns.light_palette(ACCENT, as_cmap=True)
+        sns.heatmap(cm, annot=True, fmt="d", cmap=cmap, cbar=False, ax=ax,
+                    linewidths=3, linecolor="white", annot_kws={"size": 14},
                     xticklabels=["no", "yes"], yticklabels=["no", "yes"])
         ax.set_xlabel("Predicted")
         ax.set_ylabel("Actual")
+        style_axes(ax)
         st.pyplot(fig)
     with right:
         st.subheader("Classification report")
@@ -129,13 +192,22 @@ with tab_single:
 # ---------------- Comparison ----------------
 with tab_compare:
     table = pd.DataFrame({name: score(m, X, y)[0] for name, m in models.items()}).T
-    st.dataframe(table.style.format("{:.4f}").highlight_max(axis=0, color="#c6efce"),
+    st.caption("Best value per metric highlighted. Selected model shown in the accent colour below.")
+    st.dataframe(table.style.format("{:.4f}").highlight_max(axis=0, color="#dbe4fb"),
                  width="stretch")
 
-    metric = st.radio("Metric to plot", list(table.columns), horizontal=True, index=4)
-    fig, ax = plt.subplots(figsize=(8, 3.5))
-    sns.barplot(x=table.index, y=table[metric], ax=ax, color="#4c72b0")
+    metric = st.segmented_control("Metric to plot", list(table.columns), default="F1") or "F1"
+    fig, ax = plt.subplots(figsize=(8, 3.2))
+    colors = [ACCENT if m == model_name else MUTED for m in table.index]
+    sns.barplot(x=table.index, y=table[metric], ax=ax, hue=table.index,
+                palette=colors, legend=False)
+    for i, v in enumerate(table[metric]):
+        ax.text(i, v, f"{v:.3f}", ha="center", va="bottom", fontsize=9, color="#1b2235")
     ax.set_ylabel(metric)
     ax.set_xlabel("")
-    ax.tick_params(axis="x", rotation=15)
+    ax.tick_params(axis="x", rotation=12)
+    style_axes(ax)
     st.pyplot(fig)
+
+st.markdown('<div class="footer">BITS Pilani WILP · M.Tech AIML · Machine Learning Assignment 2 '
+            '· Ayush Ranjan Jha</div>', unsafe_allow_html=True)
